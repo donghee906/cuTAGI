@@ -37,6 +37,7 @@ class Regression:
         self.network = TagiNetwork(self.net_prop)
         self.dtype = dtype
         self.viz = viz
+        #self.normalizer = normalizer()
 
     def train(self) -> None:
         """Train the network using TAGI"""
@@ -97,10 +98,15 @@ class Regression:
         batch_size = self.net_prop.batch_size
         Sx_batch, Sx_f_batch = self.init_inputs(batch_size)
 
+        #sy_pred = sy_pred.flatten()
+        #sy_test = sy_test.flatten()
+
         mean_predictions = []
         variance_predictions = []
         y_test = []
         x_test = []
+        x_train = self.data_loader["train"][0].flatten()
+        y_train = self.data_loader["train"][1].flatten()
         for x_batch, y_batch in self.data_loader["test"]:
             # Predicitons
             self.network.feed_forward(x_batch, Sx_batch, Sx_f_batch)
@@ -139,19 +145,77 @@ class Regression:
                                         observation=y_test,
                                         std=std_predictions)
 
+            # 조정할 범위
+        desired_min = -1
+        desired_max = 1
+
+    # 현재 y_train의 최소값과 최대값
+        current_min = np.min(y_train)
+        current_max = np.max(y_train)
+
+    # 현재 y_train을 조정하여 원하는 범위로 맞춤
+       # y_train_adjusted = ((y_train - current_min) / (current_max - current_min)) * (desired_max - desired_min) + desired_min
+
+    # Normalize y_train_adjusted using self.normalizer
+        #y_train_normalized = self.normalizer.standardize(data=y_train_adjusted,
+                                                      #mu=self.data_loader["y_norm_param_1"],
+                                                      #std=self.data_loader["y_norm_param_2"])
+
+        x_train_normalized = self.data_loader["train"][0]  # 정규화된 x_train 값
+        x_train_modified = normalizer.unstandardize(
+            norm_data=x_train_normalized,
+            mu=self.data_loader["x_norm_param_1"],
+            std=self.data_loader["x_norm_param_2"])
+
+        y_train_normalized = self.data_loader["train"][1]  # 정규화된 y_train 값
+        y_train_modified = normalizer.unstandardize(
+          norm_data=y_train_normalized,
+          mu=self.data_loader["y_norm_param_1"],
+          std=self.data_loader["y_norm_param_2"])
+
+        #밑에 코드는 heteros_Regression을 위한 코드가 아니라서 새로 코드를 짰음
         # Visualization
+        #if self.viz is not None:
+            #self.viz.plot_predictions(
+                #x_train=x_train,
+                #y_train=y_train,
+                #x_test=x_test,
+                #y_test=y_test,
+                #y_pred=mean_predictions,
+                #sy_pred=std_predictions,
+                #std_factor=std_factor,
+                #sy_test=std_predictions,
+                #label="diag",
+                #title="heteriscedastic Noise Inference",
+
+        #직접 짠 heteros_regression의 visualization 코드 부분
+                    # Visualization
         if self.viz is not None:
-            self.viz.plot_predictions(
-                x_train=None,
-                y_train=None,
-                x_test=x_test,
-                y_test=y_test,
-                y_pred=mean_predictions,
-                sy_pred=std_predictions,
-                std_factor=std_factor,
-                label="diag",
-                title="Diagonal covariance",
-            )
+                #x_train = self.data_loader["train"][0].flatten()
+                x_train = x_train_modified
+                y_train = y_train_modified
+                x_test = np.stack(x_test).flatten()
+                y_test = np.stack(y_test).flatten()
+
+        # visualizer.py에 noise_inference에 대해 정의 되어있는 부분을 참고하여 새로 작성한 코드 
+        self.viz.plot_predictions(
+                 x_train=x_train,
+                 y_train=y_train,
+                 x_test=x_test,
+                 y_test=y_test,
+                 y_pred=mean_predictions,
+                 sy_pred=std_predictions,
+                 std_factor=std_factor,
+                 sy_test=std_predictions,
+                 label="hete_2",
+                 title="Heteroscedastic Noise Inference",
+                 eq=r"$\begin{array}{rcl}Y &=& -(x + 0.5)\sin(3\pi x) + V, ~V\sim\mathcal{N}(0, \sigma_V^2)\\[4pt]\sigma_V &=& 0.45(x + 0.5)^2\end{array}$",
+                 x_eq=-0.98,
+                 y_eq=1.6,
+                 time_series=False,
+                 save_folder=None
+                    )
+
 
         print("#############")
         print(f"MSE           : {mse: 0.2f}")

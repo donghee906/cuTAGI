@@ -125,6 +125,7 @@ class PredictionViz:
         self.ndiv_x = ndiv_x
         self.ndiv_y = ndiv_y
 
+
     def load_dataset(self,
                      file_path: str,
                      header: bool = False) -> npt.NDArray:
@@ -204,18 +205,18 @@ class PredictionViz:
         ax.plot(x_test, y_test, "k", lw=self.lw, label=r"$y_{true}$")
 
         ax.fill_between(x_test,
-                        y_pred - std_factor * sy_pred,
-                        y_pred + std_factor * sy_pred,
+                        y_pred - std_factor * sy_pred.flatten(),
+                        y_pred + std_factor * sy_pred.flatten(),
                         facecolor="red",
                         alpha=0.3,
                         label=r"$\mathbb{E}[Y^{'}]\pm\sigma$")
         if sy_test is not None:
             ax.fill_between(x_test,
-                            y_test - std_factor * sy_test,
-                            y_test + std_factor * sy_test,
-                            facecolor="blue",
-                            alpha=0.3,
-                            label=r"$y_{true}\pm\sigma$")
+                    y_test - std_factor * sy_test,
+                    y_test + std_factor * sy_test,
+                    facecolor="blue",
+                    alpha=0.3,
+                    label=r"$y_{true}\pm\sigma$")
         if x_train is not None:
             if time_series:
                 marker = ""
@@ -235,35 +236,105 @@ class PredictionViz:
 
         ax.set_xlabel(r"$x$", fontsize=self.fontsize)
         ax.set_ylabel(r"$y$", fontsize=self.fontsize)
-        if time_series:
-            x_ticks = pd.date_range(min_x, max_x, periods=self.ndiv_x).values
-        else:
-            x_ticks = np.linspace(min_x, max_x, self.ndiv_x)
-        y_ticks = np.linspace(min_y, max_y, self.ndiv_y)
-        ax.set_yticks(y_ticks)
-        ax.set_xticks(x_ticks)
+
+
+        # 예시와 똑같은 plot위해 추가한 코드
         ax.tick_params(axis="both",
-                       which="both",
-                       direction="inout",
-                       labelsize=self.fontsize)
+                            which="both",
+                            direction="inout",
+                            labelsize=self.fontsize)
+
+        # 예시와 똑같은 plot위해 추가한 코드
         ax.legend(
-            loc="upper right",
-            edgecolor="black",
-            fontsize=1 * self.fontsize,
-            ncol=1,
-            framealpha=0.3,
-            frameon=False,
-        )
+                loc="lower center", # 중앙 하단에 보이게
+                edgecolor="black",
+                fontsize=0.7 * self.fontsize,
+                ncol=2,
+                framealpha=0.3,
+                frameon=False,
+
+)
+        # 예시와 똑같은 plot위해 추가한 코드
         ax.set_ylim([min_y, max_y])
         ax.set_xlim([min_x, max_x])
 
-        # Save figure
-        if save_folder is None:
-            plt.show()
+
+        # 수정한 코드
+        if time_series:
+            x_ticks = pd.date_range(min_x, max_x, periods=self.ndiv_x).values
         else:
-            saving_path = f"saved_results/pred_{label}_{self.data_name}.png"
-            plt.savefig(saving_path, bbox_inches="tight")
-            plt.close()
+            #x_ticks = np.linspace(min_x, max_x, self.ndiv_x)
+             x_ticks = np.linspace(min_x, max_x, self.ndiv_x)[0]
+
+        #y_ticks = np.linspace(min_y, max_y, self.ndiv_y)
+             y_ticks = np.linspace(min_y, max_y, self.ndiv_y)[0]
+
+        #ax.set_yticks(y_ticks)
+        if y_ticks is not None:
+             y_ticks = np.asarray(y_ticks).flatten()
+             y_values = np.linspace(-2.350, 2.017, 4) #(이 부분은 예시와 같은 숫자를 입력)
+             ax.set_yticks(y_values, minor=False) #y축 plot을 위해 수정한 부분
+
+        if x_ticks is not None:
+                x_ticks = np.asarray(x_ticks).flatten()
+                ax.set_xticks(x_ticks, minor=False)
+                x_values = np.linspace(-1, 1, 4) #x축 plot을 위해 수정한 부분
+
+                plt.yticks(y_values)
+                plt.xticks(x_values)
+
+                # y축 범위 설정
+                y_min = y_values[0]  # 최솟값 밑으로 다 자르기
+                y_max = y_values[-1]  # 최댓값 위로 다 자르기
+                plt.ylim([y_min, y_max])
+                plt.ylim([y_values[0], y_values[-1]])
+
+                # x축 범위 설정
+                plt.xlim([x_values[0], x_values[-1]])
+
+                # Save figure
+        if save_folder is None:
+                    plt.show()
+        else:
+                    saving_path = f"saved_results/pred_{label}_{self.data_name}.png"
+                    plt.savefig(saving_path, bbox_inches="tight")
+                    plt.close()
+
+
+
+
+        #나중에 다른 데이터를 가지고 plot하기 위한 코드(축 부분 )
+    '''''
+    if y_ticks is not None:
+        y_ticks = np.asarray(y_ticks).flatten()
+
+        # 데이터의 최솟값과 최댓값 설정
+        min_y_data = np.min(y_ticks)
+        max_y_data = np.max(y_ticks)
+
+        # 원하는 y 값 개수로 분할하여 생성
+        num_y_values = 4
+        y_values = np.linspace(min_y_data, max_y_data, num_y_values)
+        ax.set_yticks(y_values, minor=False)
+
+    if x_ticks is not None:
+        x_ticks = np.asarray(x_ticks).flatten()
+
+        # 데이터의 최솟값과 최댓값 설정
+        min_x_data = np.min(x_ticks)
+        max_x_data = np.max(x_ticks)
+
+        # 원하는 x 값 개수로 분할하여 생성
+        num_x_values = 4
+        x_values = np.linspace(min_x_data, max_x_data, num_x_values)
+        ax.set_xticks(x_values, minor=False)
+        '''''
+
+
+
+
+
+
 
 
 def autoencoder():
@@ -430,9 +501,11 @@ def noise_inference():
                          sy_pred=sy_pred,
                          std_factor=std_factor,
                          sy_test=sy_test,
+                         sy_train=sy_train,
                          label="hete_2",
                          title=r"\textbf{Heteroscedastic Nosie Inference}",
                          save_folder=save_folder)
+
 
 
 def derivative():
@@ -539,3 +612,5 @@ if __name__ == "__main__":
     #noise_inference()
     #derivative()
     time_series_forecasting()
+
+
